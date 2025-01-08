@@ -32,17 +32,18 @@ A Python-based graphical user interface (GUI) for managing and monitoring a Time
 ### Setup
 
 1. **Clone the Repository**:
-   ```bash
+   ```
    git clone https://github.com/stoffl6781/timeular-tracker-gui.git
-   cd timeular-tracker-gui´´´
+   ```
 
-2. Install Dependencies
+3. **Install Dependencies**
 
 ### Usage
 
 1. **Launch the Application:**
-   ```bash 
-  python main.py´´´
+    ```
+    python timeular-gui.py
+    ```
 
 2. **Connect to a Device:**
   Click "Scan" to search for available devices.
