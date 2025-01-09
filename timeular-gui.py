@@ -1,3 +1,23 @@
+import subprocess
+import sys
+
+# Funktion zur Prüfung und Installation von Paketen
+def install_and_import(package):
+    try:
+        # Prüfen, ob das Paket bereits installiert ist
+        __import__(package)
+    except ImportError:
+        # Paket ist nicht installiert, Installation starten
+        print(f"{package} ist nicht installiert. Installation wird gestartet...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        
+
+# Pakete prüfen und installieren
+REQUIRED_PACKAGES = ["bleak", "tkcalendar"]
+
+for package in REQUIRED_PACKAGES:
+    install_and_import(package)
+
 import asyncio
 import threading
 import tkinter as tk
@@ -1008,9 +1028,8 @@ class TimeularApp:
             self.orientation_labels = {i: f"Fläche {i}" for i in range(1, 9)}
             self.log_message("Keine Konfigurationsdatei gefunden. Standardlabels werden verwendet.")
 
-
-
 if __name__ == "__main__":
+    
     root = tk.Tk()
     app = TimeularApp(root)
     root.mainloop()
