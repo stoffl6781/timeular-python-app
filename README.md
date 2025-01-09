@@ -24,6 +24,14 @@ A Python-based graphical user interface (GUI) for managing and monitoring a Time
 
 ![Screenshot-App](https://static.purin.at/wp-content/uploads/2025/01/timeular-python-app.png)
 
+## ToDo
+  - Translations (DE/EN)
+  - SQL connection for device sync
+  - Better solution for Power cycle / update
+  - Better code sturcture
+  - Better UI
+  - Better Log
+
 ## Installation
 
 ### Requirements
