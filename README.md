@@ -27,6 +27,7 @@ A Python-based graphical user interface (GUI) for managing and monitoring a Time
 - Python 3.8 or higher
 - Dependencies:
   - `bleak` for Bluetooth communication
+  - `tkcalendar` for Calendar
   - `tkinter` for the GUI (usually included with Python installations)
 
 ### Setup
