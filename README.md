@@ -19,6 +19,10 @@ A Python-based graphical user interface (GUI) for managing and monitoring a Time
 
 - **Real-Time Updates**:
   - Continuous updates for battery, charging, and device details without freezing the GUI.
+ 
+## Screenshot
+
+![Screenshot-App](https://static.purin.at/wp-content/uploads/2025/01/timeular-python-app.png)
 
 ## Installation
 
