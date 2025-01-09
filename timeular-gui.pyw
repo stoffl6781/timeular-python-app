@@ -130,7 +130,7 @@ class TimeularApp:
             )
         self.report_button.pack(side="right", padx=10)
 
-        self.power_label = ttk.Label(self.status_frame, text="Ladezustand: N/A", font=("Helvetica", 8))
+        self.power_label = ttk.Label(self.status_frame, text="Ladezustand: Wird nicht geladen", font=("Helvetica", 8))
         self.power_label.pack(side="right", padx=10)
 
         # Timer und Orientierung (links)
@@ -685,7 +685,7 @@ class TimeularApp:
                 self.footer_label.config(text=device_info)
                 self.log_message(f"Geräteinformationen aktualisiert: {device_info}")
             else:
-                self.footer_label.config(text="Nicht verbunden")
+                self.footer_label.config(text="Drücke auf Reconnect um die Gerätedaten zu lesen.")
         except Exception as e:
             self.log_message(f"Fehler beim Abrufen der Geräteinformationen: {e}")
             self.footer_label.config(text="Fehler beim Abrufen der Geräteinformationen")
@@ -891,7 +891,7 @@ class TimeularApp:
         self.entry_list.delete(0, tk.END)  # Alte Einträge löschen
 
         if selected_date in self.calendar_data:
-            seen_entries = set()  # Set zur Vermeidung von Duplikaten
+            #seen_entries = set()  # Set zur Vermeidung von Duplikaten
             for entry in self.calendar_data[selected_date]:
                 try:
                     if isinstance(entry, dict):
@@ -914,10 +914,10 @@ class TimeularApp:
                         continue
 
                     # Prüfen, ob der Eintrag bereits angezeigt wurde
-                    if entry_tuple not in seen_entries:
-                        entry_text = f"{label}, Dauer: {elapsed}, Aufgabe: {task}, Auftrag: {job}"
-                        self.entry_list.insert(tk.END, entry_text)
-                        seen_entries.add(entry_tuple)
+                    #if entry_tuple not in seen_entries:
+                    entry_text = f"{label}, Dauer: {elapsed}, Aufgabe: {task}, Auftrag: {job}"
+                    self.entry_list.insert(tk.END, entry_text)
+                    seen_entries.add(entry_tuple)
                 except Exception as e:
                     print(f"Fehler beim Verarbeiten des Eintrags: {entry}, Fehler: {e}")
         else:
