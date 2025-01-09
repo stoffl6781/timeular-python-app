@@ -31,6 +31,9 @@ A Python-based graphical user interface (GUI) for managing and monitoring a Time
   - Better code sturcture
   - Better UI
   - Better Log
+  - Install user folder
+  - Simpel open App
+  - Autostart App on windows start
 
 ## Installation
 
@@ -50,6 +53,7 @@ A Python-based graphical user interface (GUI) for managing and monitoring a Time
    ```
 
 3. **Install Dependencies**
+   All dependencies install automatic on first start of the app. 
 
 ### Usage
 
