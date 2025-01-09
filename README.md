@@ -1,4 +1,4 @@
-# Timeular Tracker GUI
+# Timeular Python Tracker GUI
 
 A Python-based graphical user interface (GUI) for managing and monitoring a Timeular Tracker. This application provides real-time updates for battery and charging status, orientation tracking, and device information.
 
