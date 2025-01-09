@@ -28,6 +28,7 @@ from datetime import datetime
 from tkcalendar import Calendar
 import time
 import json
+from report_window import ReportWindow
 
 DEVICE_NAME = "Timeular Tra"
 
@@ -56,7 +57,9 @@ class TimeularApp:
         self.current_orientation = None
         self.timer_start = None
         self.orientation_log = []
-        self.orientation_labels = {i: f"{i}" for i in range(1, 9)}
+        self.orientation_labels = {
+            str(i): {"label": f"Fläche {i}", "color": "#FFFFFF"} for i in range(1, 9)
+        }
 
         #Calendar
         self.calendar_data = {}  # {datum: [(orientierung, dauer, aufgabe, auftrag), ...]}
@@ -93,14 +96,14 @@ class TimeularApp:
 
     def create_layout(self):
         """Erstellt eine übersichtliche GUI mit 50/50-Aufteilung zwischen Kalender und Timer & Orientierung."""
-        self.root.geometry("800x600")  # Fenstergröße definieren
+        self.root.geometry("1000x800")
 
         # Hauptstruktur: 2 Spalten und dynamische Zeilenhöhe
-        self.root.columnconfigure(0, weight=1)  # Spalte für Timer & Orientierung (50%)
-        self.root.columnconfigure(1, weight=1)  # Spalte für Kalender (50%)
-        self.root.rowconfigure(1, weight=1)  # Dynamische Höhe für Timer und Kalender
-        self.root.rowconfigure(2, weight=1)  # Dynamische Höhe für Geräte & Einträge
-        self.root.rowconfigure(3, weight=1)  # Dynamische Höhe für Auswertung
+        self.root.columnconfigure(0, weight=1) 
+        self.root.columnconfigure(1, weight=1) 
+        self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(2, weight=1)
+        self.root.rowconfigure(3, weight=1)
 
         # Verbindungsstatus und Batterielevel (oben über die gesamte Breite)
         self.status_frame = ttk.Frame(self.root)
@@ -116,9 +119,16 @@ class TimeularApp:
         self.reconnect_button = ttk.Button(
             self.status_frame,
             text="Reconnect",
-            command=self.auto_connect  # Ruft die Methode zur automatischen Verbindung auf
+            command=self.auto_connect
         )
         self.reconnect_button.pack(side="right", padx=10)
+
+        self.report_button = ttk.Button(
+            self.status_frame,
+            text="Bericht öffnen", 
+            command=self.open_report
+            )
+        self.report_button.pack(side="right", padx=10)
 
         self.power_label = ttk.Label(self.status_frame, text="Ladezustand: N/A", font=("Helvetica", 8))
         self.power_label.pack(side="right", padx=10)
@@ -163,8 +173,8 @@ class TimeularApp:
         self.entry_list_frame.grid(row=2, column=1, padx=10, pady=5, sticky="nsew")
 
         # Konfiguration des Frames
-        self.entry_list_frame.rowconfigure(0, weight=2)  # Listbox nimmt weniger Platz
-        self.entry_list_frame.rowconfigure(1, weight=1)  # Buttons nehmen mehr Platz
+        self.entry_list_frame.rowconfigure(0, weight=2)
+        self.entry_list_frame.rowconfigure(1, weight=1)
         self.entry_list_frame.columnconfigure(0, weight=1)
 
         # Listbox
@@ -172,7 +182,7 @@ class TimeularApp:
         self.entry_list.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
         # Buttons
-        self.button_frame = ttk.Frame(self.entry_list_frame, height=50)  # Mindesthöhe für Buttons
+        self.button_frame = ttk.Frame(self.entry_list_frame, height=50)
         self.button_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
 
         self.show_entries_button = tk.Button(
@@ -193,30 +203,49 @@ class TimeularApp:
 
 
         # Auswertung (unten über die gesamte Breite)
-        self.log_frame = ttk.LabelFrame(self.root, text="Auswertung")
+        self.log_frame = ttk.LabelFrame(self.root, text="LOG")
         self.log_frame.grid(row=3, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
         self.log_text = tk.Text(self.log_frame, height=10)
         self.log_text.pack(fill="both", expand=True)
 
         # Fußzeile
-        self.footer_frame = ttk.Frame(self.root)
+        self.footer_frame = tk.Frame(self.root, bg="#222") 
         self.footer_frame.grid(row=4, column=0, columnspan=2, padx=0, pady=0, sticky="ew")
-        #self.footer_frame.config(bg="#222")
 
-        # Version & Status links
+        # Spaltenzentrierung aktivieren
+        self.footer_frame.grid_columnconfigure(0, weight=1)
+        self.footer_frame.grid_columnconfigure(1, weight=1)
+
+        # Version & Status
         self.version_label = tk.Label(
-            self.footer_frame, text="Version: 1.0.0", font=("Helvetica", 10), fg="white", bg="#222"
+            self.footer_frame, text="Version: 1.1.0", font=("Helvetica", 10), fg="white", bg="#222"
         )
-        self.version_label.pack(side="left", padx=10, pady=5)
+        self.version_label.grid(row=0, column=0, pady=5, sticky="w")
+
+        self.footer_label = tk.Label(
+            self.footer_frame, text="Load device info", font=("Helvetica", 8), fg="white", bg="#222"
+        )
+
+        self.footer_label.grid(row=0, column=1, pady=5, sticky="w")
 
         # Dynamische Uhrzeit & Datum
         self.time_label = tk.Label(
             self.footer_frame, text="", font=("Helvetica", 10), fg="white", bg="#222"
         )
-        self.time_label.pack(side="right", padx=10, pady=5)
+        self.time_label.grid(row=0, column=2, padx=10, pady=5, sticky="e")
 
         # Starten des Uhrzeit-Updates
         self.update_time()
+
+    def open_report(self):
+        """Öffnet das Bericht-Fenster."""
+        report_data = self.get_calendar_data()
+        
+        # Stelle sicher, dass label_settings verfügbar ist
+        label_settings = self.orientation_labels  # Labels und Farben aus der Konfiguration
+        
+        self.report = ReportWindow(self.root, report_data, label_settings)
+        self.report.open()
 
     def log_message(self, message):
         """Zeigt Nachrichten in der Logbox an."""
@@ -366,20 +395,33 @@ class TimeularApp:
             with open(CONFIG_FILE, "r") as f:
                 config = json.load(f)
                 self.device_address = config.get("device_address", None)
-                self.orientation_labels = config.get(
-                    "orientation_labels",
-                    {str(i): f"Fläche {i}" for i in range(1, 9)}  # Standardwerte
-                )
+                
+                # Orientation Labels laden und validieren
+                loaded_labels = config.get("orientation_labels", {})
+                self.orientation_labels = {}
+                for i in range(1, 9):
+                    key = str(i)
+                    if isinstance(loaded_labels.get(key), dict):
+                        # Validieren und Standardwerte ergänzen
+                        self.orientation_labels[key] = {
+                            "label": loaded_labels[key].get("label", f"Fläche {i}"),
+                            "color": loaded_labels[key].get("color", "#FFFFFF"),
+                        }
+                    else:
+                        # Standardwert für nicht vorhandene Labels
+                        self.orientation_labels[key] = {
+                            "label": f"Fläche {i}",
+                            "color": "#FFFFFF",
+                        }
                 self._safe_log(f"Konfiguration geladen. MAC-Adresse: {self.device_address}")
         except FileNotFoundError:
             # Standardwerte, falls die Datei fehlt
             self.device_address = None
-            self.orientation_labels = {str(i): f"Fläche {i}" for i in range(1, 9)}
+            self.orientation_labels = {str(i): {"label": f"Fläche {i}", "color": "#FFFFFF"} for i in range(1, 9)}
             self.save_config()  # Erstellt die Datei
             self._safe_log("Keine Konfigurationsdatei gefunden. Neue Datei erstellt.")
         except Exception as e:
             self._safe_log(f"Fehler beim Laden der Konfigurationsdatei: {e}")
-
 
     def auto_connect(self):
         """Versucht, automatisch eine Verbindung zu einem gespeicherten Gerät herzustellen."""
@@ -440,9 +482,12 @@ class TimeularApp:
             # Status auf verbunden setzen
             self.connection_status.config(text="Verbunden", bg="green", fg="white")
 
+            # Einmalige Geräteinfo-Aktualisierung
+            asyncio.run(self.fetch_device_info()) 
+
             # Starte die regelmäßigen Updates
             self.start_battery_update_loop()
-            self.start_device_info_update_loop()
+            #self.start_device_info_update_loop()
 
         except Exception as e:
             self.log_message(f"Fehler beim Verbinden: {e}")
@@ -562,10 +607,11 @@ class TimeularApp:
             self.current_orientation = orientation
             self.timer_start = datetime.now()
 
-            # Hole das Label oder verwende einen Standardwert
-            label = self.orientation_labels.get(str(orientation), f"Fläche {orientation}")
-            self.orientation_label.config(text=f"{label}")
-            self.log_message(f"Orientierung geändert: {label}")
+            # Hole das Label (nur den Namen) oder verwende einen Standardwert
+            label_data = self.orientation_labels.get(str(orientation), {})
+            label_name = label_data.get("label", f"Fläche {orientation}")
+            self.orientation_label.config(text=f"{label_name}")
+            self.log_message(f"Orientierung geändert: {label_name}")
 
             # Aktualisiere den Timer in der GUI
             self._update_timer_gui()
@@ -605,8 +651,14 @@ class TimeularApp:
                 # Aktualisiere die aktuelle Orientierung
                 self.current_orientation = orientation
                 self.timer_start = datetime.now()
-                self.orientation_label.config(text=f"{self.orientation_labels[orientation]}")
-                self.log_message(f"Orientierung geändert: {self.orientation_labels[orientation]}")
+
+                # Hole das Label der aktuellen Orientierung
+                label_data = self.orientation_labels.get(str(orientation), {})
+                label_name = label_data.get("label", f"Fläche {orientation}")
+
+                # Aktualisiere die GUI
+                self.orientation_label.config(text=f"{label_name}")
+                self.log_message(f"Orientierung geändert: {label_name}")
 
         except Exception as e:
             self.log_message(f"Fehler beim Verarbeiten der Orientierung: {e}")
@@ -642,10 +694,12 @@ class TimeularApp:
         """Startet die regelmäßige Aktualisierung der Geräteinformationen."""
         async def update_device_info():
             while self.connected_client and self.connected_client.is_connected:
+                self.log_message("Aktualisiere Geräteinformationen...")  # Debug-Ausgabe
                 await self.fetch_device_info()
-                await asyncio.sleep(60)  # Alle 60 Sekunden aktualisieren
+                await asyncio.sleep(60)
 
         threading.Thread(target=lambda: asyncio.run(update_device_info()), daemon=True).start()
+
 
 
     def start_disconnect_thread(self):
@@ -720,11 +774,18 @@ class TimeularApp:
                 # Aktualisiere die aktuelle Orientierung
                 self.current_orientation = orientation
                 self.timer_start = datetime.now()
-                self.orientation_label.config(text=f"{self.orientation_labels[orientation]}")
-                self.log_message(f"Orientierung geändert: {self.orientation_labels[orientation]}")
+
+                # Hole das Label der aktuellen Orientierung
+                label_data = self.orientation_labels.get(str(orientation), {})
+                label_name = label_data.get("label", f"Fläche {orientation}")
+
+                # Aktualisiere die GUI
+                self.orientation_label.config(text=f"{label_name}")
+                self.log_message(f"Orientierung geändert: {label_name}")
 
         except Exception as e:
             self.log_message(f"Fehler beim Verarbeiten der Orientierung: {e}")
+
 
     def save_log(self, orientation, elapsed):
         """Speichert die Aktivität in der Auswertung und im Log."""
@@ -760,20 +821,22 @@ class TimeularApp:
         orientation = self.current_orientation if self.current_orientation else "Pause"
 
         # Hole das Label der Orientierung oder verwende einen Standardwert
-        label = self.orientation_labels.get(str(orientation), f"Fläche {orientation}")
+        label_data = self.orientation_labels.get(str(orientation), {})
+        label_name = label_data.get("label", f"Fläche {orientation}")
 
         # Prüfen, ob der Eintrag bereits existiert
-        entry = [label, str(elapsed).split(".")[0], task, job]
+        entry = [label_name, str(elapsed).split(".")[0], task, job]
         if date in self.calendar_data:
             for existing_entry in self.calendar_data[date]:
-                if existing_entry[0] == label and existing_entry[2] == task and existing_entry[3] == job:
+                if existing_entry[0] == label_name and existing_entry[2] == task and existing_entry[3] == job:
                     self.log_message(f"Eintrag bereits vorhanden: {entry} für Datum {date}")
                     return  # Kein erneutes Speichern
 
         # Speichern des neuen Eintrags
-        self.save_calendar_entry(date, label, elapsed, task, job)
+        self.save_calendar_entry(date, label_name, elapsed, task, job)
 
         self.reset_input_fields()
+
 
     def save_calendar_entry(self, date, label, elapsed, task, job):
         """Speichert einen neuen Kalendereintrag und aktualisiert die JSON-Datei."""
@@ -830,13 +893,36 @@ class TimeularApp:
         if selected_date in self.calendar_data:
             seen_entries = set()  # Set zur Vermeidung von Duplikaten
             for entry in self.calendar_data[selected_date]:
-                if tuple(entry) not in seen_entries:  # Eintrag nur hinzufügen, wenn er noch nicht angezeigt wird
-                    label, elapsed, task, job = entry
-                    entry_text = f"{label}, Dauer: {elapsed}, Aufgabe: {task}, Auftrag: {job}"
-                    self.entry_list.insert(tk.END, entry_text)
-                    seen_entries.add(tuple(entry))
+                try:
+                    if isinstance(entry, dict):
+                        # Konvertiere dict in tuple
+                        label = entry.get("label", "Unbekannt")
+                        elapsed = entry.get("duration", "0:00:00")
+                        task = entry.get("task", "")
+                        job = entry.get("job", "")
+                        entry_tuple = (label, elapsed, task, job)
+                    elif isinstance(entry, list):
+                        # Verarbeite Liste
+                        if len(entry) >= 4:
+                            label, elapsed, task, job = entry
+                        else:
+                            label, elapsed, task, job = "Unbekannt", "0:00:00", "", ""
+                        entry_tuple = (label, elapsed, task, job)
+                    else:
+                        # Unbekanntes Format überspringen
+                        print(f"Unbekanntes Format in Einträgen: {entry}")
+                        continue
+
+                    # Prüfen, ob der Eintrag bereits angezeigt wurde
+                    if entry_tuple not in seen_entries:
+                        entry_text = f"{label}, Dauer: {elapsed}, Aufgabe: {task}, Auftrag: {job}"
+                        self.entry_list.insert(tk.END, entry_text)
+                        seen_entries.add(entry_tuple)
+                except Exception as e:
+                    print(f"Fehler beim Verarbeiten des Eintrags: {entry}, Fehler: {e}")
         else:
             self.entry_list.insert(tk.END, "Keine Einträge für dieses Datum.")
+
 
 
     def delete_calendar_entry(self):
@@ -879,7 +965,7 @@ class TimeularApp:
         # Popup-Fenster für Bearbeitung
         edit_window = Toplevel(self.root)
         edit_window.title("Eintrag bearbeiten")
-        edit_window.geometry("400x400")
+        edit_window.geometry("400x500")
 
         # Datum ändern
         ttk.Label(edit_window, text="Datum (yyyy-mm-dd)").pack(pady=5)
@@ -887,11 +973,16 @@ class TimeularApp:
         date_entry.insert(0, selected_date)
         date_entry.pack(pady=5)
 
-        # Orientierung ändern
+        # Orientierung ändern (Dropdown)
         ttk.Label(edit_window, text="Orientierung").pack(pady=5)
-        orientation_entry = ttk.Entry(edit_window, width=30)
-        orientation_entry.insert(0, entry[0])  # Aktuelle Orientierung
-        orientation_entry.pack(pady=5)
+        orientation_var = tk.StringVar(value=entry[0])
+        orientation_dropdown = ttk.Combobox(
+            edit_window,
+            textvariable=orientation_var,
+            values=[self.orientation_labels[str(i)]["label"] for i in range(1, 9)],
+            state="readonly"
+        )
+        orientation_dropdown.pack(pady=5)
 
         # Zeit ändern
         ttk.Label(edit_window, text="Zeit (Dauer)").pack(pady=5)
@@ -914,7 +1005,7 @@ class TimeularApp:
         # Speichern-Button
         def save_changes():
             new_date = date_entry.get()
-            new_orientation = orientation_entry.get()
+            new_orientation = orientation_var.get()
             new_time = time_entry.get()
             new_task = task_entry.get("1.0", "end-1c")
             new_job = job_entry.get()
@@ -971,36 +1062,49 @@ class TimeularApp:
             self.orientation_label.config(text="Pause")
 
     def edit_orientation_labels(self):
-        """Öffnet ein Fenster, um die Orientierung/Labels zu bearbeiten."""
+        """Öffnet ein Fenster, um die Orientierung/Labels und deren Farben zu bearbeiten."""
         edit_window = Toplevel(self.root)
         edit_window.title("Orientierungen bearbeiten")
-        edit_window.geometry("300x400")
+        edit_window.geometry("400x500")
 
         # Frame für Orientierungseinstellungen
-        labels_frame = ttk.LabelFrame(edit_window, text="Orientierung Labels")
+        labels_frame = ttk.LabelFrame(edit_window, text="Orientierung Labels und Farben")
         labels_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Eingabefelder für jede Orientierung
         label_entries = {}
+        color_entries = {}
         for i in range(1, 9):  # Orientierung 1 bis 8
             ttk.Label(labels_frame, text=f"Orientierung {i}:").grid(row=i, column=0, padx=5, pady=5, sticky="e")
-            label_var = tk.StringVar(value=self.orientation_labels[str(i)])  # Lade Benutzerdefinierte Labels
+
+            # Labelname bearbeiten
+            label_var = tk.StringVar(value=self.orientation_labels.get(str(i), {}).get("label", f"Fläche {i}"))
             label_entry = ttk.Entry(labels_frame, textvariable=label_var, width=25)
             label_entry.grid(row=i, column=1, padx=5, pady=5, sticky="w")
-            label_entries[i] = label_var  # Speichere die Variablen für später
+            label_entries[str(i)] = label_var
+
+            # Farbcode bearbeiten
+            ttk.Label(labels_frame, text="Farbe (HEX):").grid(row=i, column=2, padx=5, pady=5, sticky="e")
+            color_var = tk.StringVar(value=self.orientation_labels.get(str(i), {}).get("color", "#FFFFFF"))
+            color_entry = ttk.Entry(labels_frame, textvariable=color_var, width=10)
+            color_entry.grid(row=i, column=3, padx=5, pady=5, sticky="w")
+            color_entries[str(i)] = color_var
 
         def save_orientation_labels():
-            """Speichert die geänderten Orientierung Labels."""
+            """Speichert die geänderten Orientierung Labels und Farben."""
             for i in range(1, 9):
-                self.orientation_labels[str(i)] = label_entries[i].get()  # Aktualisiere die Orientierung Labels
+                self.orientation_labels[str(i)] = {
+                    "label": label_entries[str(i)].get(),
+                    "color": color_entries[str(i)].get()
+                }
 
             # Speichere die aktualisierten Labels in der Konfigurationsdatei
-            self.save_config()
+            self.save_orientation_labels_to_config()
 
             # Aktualisiere das Timer-Label sofort
             self.update_timer_orientation_label()
 
-            self.log_message("Orientierung Labels aktualisiert.")
+            self.log_message("Orientierung Labels und Farben aktualisiert.")
             edit_window.destroy()
 
         ttk.Button(edit_window, text="Speichern", command=save_orientation_labels).pack(pady=10)
@@ -1008,25 +1112,53 @@ class TimeularApp:
         # Abbrechen-Button
         ttk.Button(edit_window, text="Abbrechen", command=edit_window.destroy).pack()
 
+
     def save_orientation_labels_to_config(self):
-        """Speichert die Orientierungslabels in der Konfigurationsdatei."""
-        config = {"device_address": self.device_address, "orientation_labels": self.orientation_labels}
+        """Speichert die Orientierungslabels und Farben in der Konfigurationsdatei."""
+        config = {
+            "device_address": self.device_address,
+            "orientation_labels": self.orientation_labels
+        }
         with open(CONFIG_FILE, "w") as f:
-            json.dump(config, f)
-        self.log_message("Orientierungslabels in der Konfiguration gespeichert.")
+            json.dump(config, f, indent=4)
+        self.log_message("Orientierungslabels und Farben in der Konfiguration gespeichert.")
 
     def load_orientation_labels(self):
-        """Lädt die Orientierungslabels aus der Konfigurationsdatei."""
+        """Lädt die Orientierungslabels und Farben aus der Konfigurationsdatei."""
         try:
             with open(CONFIG_FILE, "r") as f:
                 config = json.load(f)
-                labels = config.get("orientation_labels", {})
-                for i in range(1, 9):
-                    self.orientation_labels[i] = labels.get(str(i), f"Fläche {i}")
+                self.orientation_labels = config.get("orientation_labels", {})
+                self.log_message("Orientierungslabels und Farben geladen.")
         except FileNotFoundError:
             # Standardwerte, wenn Datei fehlt
-            self.orientation_labels = {i: f"Fläche {i}" for i in range(1, 9)}
-            self.log_message("Keine Konfigurationsdatei gefunden. Standardlabels werden verwendet.")
+            self.orientation_labels = {str(i): {"label": f"Fläche {i}", "color": "#FFFFFF"} for i in range(1, 9)}
+            self.log_message("Keine Konfigurationsdatei gefunden. Standardlabels und -farben werden verwendet.")
+
+
+    #Report Data
+    def get_calendar_data(self, start_date=None, end_date=None):
+        """
+        Gibt die Kalenderdaten zurück, optional gefiltert nach einem Datumsbereich.
+        :param start_date: Startdatum (YYYY-MM-DD) als String oder None
+        :param end_date: Enddatum (YYYY-MM-DD) als String oder None
+        :return: Liste der gefilterten Einträge
+        """
+        filtered_data = []
+        for date, entries in self.calendar_data.items():
+            if start_date and date < start_date:
+                continue
+            if end_date and date > end_date:
+                continue
+            for entry in entries:
+                filtered_data.append({
+                    "date": date,
+                    "label": entry[0],
+                    "duration": entry[1],
+                    "task": entry[2],
+                    "job": entry[3],
+                })
+        return filtered_data
 
 if __name__ == "__main__":
     
